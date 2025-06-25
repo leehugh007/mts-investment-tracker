@@ -1,0 +1,143 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 用戶資料規則
+    match /users/{userId} {
+      // 只有用戶本人可以讀寫自己的資料
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+      
+      // 創建時必須包含必要欄位
+      allow create: if request.auth != null 
+        && request.auth.uid == userId
+        && request.resource.data.keys().hasAll(['uid', 'email', 'displayName', 'timezone', 'preferredCurrency'])
+        && request.resource.data.uid == userId
+        && request.resource.data.email == request.auth.token.email;
+    }
+    
+    // 資本配置規則
+    match /capitalAllocations/{allocationId} {
+      // 只有資本配置的擁有者可以讀寫
+      allow read, write: if request.auth != null 
+        && request.auth.uid == resource.data.userId;
+      
+      // 創建時必須包含必要欄位且用戶ID正確
+      allow create: if request.auth != null 
+        && request.auth.uid == request.resource.data.userId
+        && request.resource.data.keys().hasAll(['userId', 'name', 'totalAmount', 'availableAmount', 'currency', 'riskLevel'])
+        && request.resource.data.totalAmount >= 0
+        && request.resource.data.availableAmount >= 0
+        && request.resource.data.availableAmount <= request.resource.data.totalAmount;
+      
+      // 更新時不能修改用戶ID
+      allow update: if request.auth != null 
+        && request.auth.uid == resource.data.userId
+        && request.resource.data.userId == resource.data.userId;
+    }
+    
+    // 交易記錄規則
+    match /transactions/{transactionId} {
+      // 只有交易的擁有者可以讀寫
+      allow read, write: if request.auth != null 
+        && request.auth.uid == resource.data.userId;
+      
+      // 創建時必須包含必要欄位
+      allow create: if request.auth != null 
+        && request.auth.uid == request.resource.data.userId
+        && request.resource.data.keys().hasAll(['userId', 'allocationId', 'market', 'symbol', 'transactionType', 'shares', 'price', 'totalAmount', 'currency'])
+        && request.resource.data.shares > 0
+        && request.resource.data.price > 0
+        && request.resource.data.totalAmount > 0
+        && request.resource.data.transactionType in ['buy', 'sell'];
+      
+      // 更新時不能修改關鍵欄位
+      allow update: if request.auth != null 
+        && request.auth.uid == resource.data.userId
+        && request.resource.data.userId == resource.data.userId
+        && request.resource.data.allocationId == resource.data.allocationId
+        && request.resource.data.market == resource.data.market
+        && request.resource.data.symbol == resource.data.symbol;
+    }
+    
+    // 持股記錄規則
+    match /holdings/{holdingId} {
+      // 只有持股的擁有者可以讀寫
+      allow read, write: if request.auth != null 
+        && request.auth.uid == resource.data.userId;
+      
+      // 創建時必須包含必要欄位
+      allow create: if request.auth != null 
+        && request.auth.uid == request.resource.data.userId
+        && request.resource.data.keys().hasAll(['userId', 'allocationId', 'market', 'symbol', 'totalShares', 'averageCost', 'totalCost', 'currency'])
+        && request.resource.data.totalShares >= 0
+        && request.resource.data.averageCost >= 0
+        && request.resource.data.totalCost >= 0;
+      
+      // 更新時不能修改關鍵欄位
+      allow update: if request.auth != null 
+        && request.auth.uid == resource.data.userId
+        && request.resource.data.userId == resource.data.userId
+        && request.resource.data.allocationId == resource.data.allocationId
+        && request.resource.data.market == resource.data.market
+        && request.resource.data.symbol == resource.data.symbol;
+    }
+    
+    // 風險設定規則
+    match /riskSettings/{settingId} {
+      // 只有設定的擁有者可以讀寫
+      allow read, write: if request.auth != null 
+        && request.auth.uid == resource.data.userId;
+      
+      // 創建時必須包含必要欄位
+      allow create: if request.auth != null 
+        && request.auth.uid == request.resource.data.userId
+        && request.resource.data.keys().hasAll(['userId', 'settingType', 'settingScope', 'isActive'])
+        && request.resource.data.settingType in ['position_limit', 'stop_loss', 'daily_loss']
+        && request.resource.data.settingScope in ['allocation', 'position', 'global'];
+      
+      // 更新時不能修改用戶ID
+      allow update: if request.auth != null 
+        && request.auth.uid == resource.data.userId
+        && request.resource.data.userId == resource.data.userId;
+    }
+    
+    // 風險事件規則
+    match /riskEvents/{eventId} {
+      // 只有事件的擁有者可以讀寫
+      allow read, write: if request.auth != null 
+        && request.auth.uid == resource.data.userId;
+      
+      // 創建時必須包含必要欄位
+      allow create: if request.auth != null 
+        && request.auth.uid == request.resource.data.userId
+        && request.resource.data.keys().hasAll(['userId', 'eventType', 'severity', 'message', 'isResolved'])
+        && request.resource.data.severity in ['low', 'medium', 'high', 'critical'];
+      
+      // 更新時只能修改解決狀態
+      allow update: if request.auth != null 
+        && request.auth.uid == resource.data.userId
+        && request.resource.data.userId == resource.data.userId
+        && request.resource.data.eventType == resource.data.eventType
+        && request.resource.data.severity == resource.data.severity
+        && request.resource.data.message == resource.data.message;
+    }
+    
+    // 拒絕所有其他訪問
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
+
+// 輔助函數
+function isValidEmail(email) {
+  return email.matches('.*@.*\\..*');
+}
+
+function isValidCurrency(currency) {
+  return currency in ['TWD', 'USD', 'HKD', 'JPY', 'KRW'];
+}
+
+function isValidMarket(market) {
+  return market in ['tw', 'us', 'hk', 'jp', 'kr'];
+}
+

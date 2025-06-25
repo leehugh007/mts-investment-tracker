@@ -1,12 +1,17 @@
 import { create } from 'zustand'
 import { devtools } from 'zustand/middleware'
-import { UserProfile, CapitalAllocation } from '@/types'
+import { User } from 'firebase/auth'
+import { UserProfile, CapitalAllocation } from '@/lib/firebase/firestore'
 
 interface UserState {
+  // Firebase用戶
+  firebaseUser: User | null
+  setFirebaseUser: (user: User | null) => void
+
   // 用戶資料
-  user: UserProfile | null
-  setUser: (user: UserProfile | null) => void
-  updateUser: (updates: Partial<UserProfile>) => void
+  userProfile: UserProfile | null
+  setUserProfile: (profile: UserProfile | null) => void
+  updateUserProfile: (updates: Partial<UserProfile>) => void
 
   // 資本配置
   allocations: CapitalAllocation[]
@@ -15,16 +20,14 @@ interface UserState {
   updateAllocation: (id: string, updates: Partial<CapitalAllocation>) => void
   removeAllocation: (id: string) => void
 
-  // 偏好設定
-  preferences: Record<string, any>
-  setPreferences: (preferences: Record<string, any>) => void
-  updatePreference: (key: string, value: any) => void
+  // 認證狀態
+  isAuthenticated: boolean
+  isLoading: boolean
+  setLoading: (loading: boolean) => void
 
-  // 載入狀態
-  isLoadingUser: boolean
-  isLoadingAllocations: boolean
-  setLoadingUser: (loading: boolean) => void
-  setLoadingAllocations: (loading: boolean) => void
+  // 初始化狀態
+  isInitialized: boolean
+  setInitialized: (initialized: boolean) => void
 
   // 重置狀態
   reset: () => void
@@ -33,12 +36,20 @@ interface UserState {
 export const useUserStore = create<UserState>()(
   devtools(
     (set, get) => ({
+      // Firebase用戶
+      firebaseUser: null,
+      setFirebaseUser: (user) => 
+        set({ 
+          firebaseUser: user,
+          isAuthenticated: !!user
+        }),
+
       // 用戶資料
-      user: null,
-      setUser: (user) => set({ user }),
-      updateUser: (updates) =>
+      userProfile: null,
+      setUserProfile: (profile) => set({ userProfile: profile }),
+      updateUserProfile: (updates) =>
         set((state) => ({
-          user: state.user ? { ...state.user, ...updates } : null
+          userProfile: state.userProfile ? { ...state.userProfile, ...updates } : null
         })),
 
       // 資本配置
@@ -59,28 +70,24 @@ export const useUserStore = create<UserState>()(
           allocations: state.allocations.filter((allocation) => allocation.id !== id)
         })),
 
-      // 偏好設定
-      preferences: {},
-      setPreferences: (preferences) => set({ preferences }),
-      updatePreference: (key, value) =>
-        set((state) => ({
-          preferences: { ...state.preferences, [key]: value }
-        })),
+      // 認證狀態
+      isAuthenticated: false,
+      isLoading: true,
+      setLoading: (loading) => set({ isLoading: loading }),
 
-      // 載入狀態
-      isLoadingUser: false,
-      isLoadingAllocations: false,
-      setLoadingUser: (loading) => set({ isLoadingUser: loading }),
-      setLoadingAllocations: (loading) => set({ isLoadingAllocations: loading }),
+      // 初始化狀態
+      isInitialized: false,
+      setInitialized: (initialized) => set({ isInitialized: initialized }),
 
       // 重置狀態
       reset: () =>
         set({
-          user: null,
+          firebaseUser: null,
+          userProfile: null,
           allocations: [],
-          preferences: {},
-          isLoadingUser: false,
-          isLoadingAllocations: false,
+          isAuthenticated: false,
+          isLoading: false,
+          isInitialized: false,
         }),
     }),
     { name: 'user-store' }
