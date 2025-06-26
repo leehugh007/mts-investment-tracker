@@ -1,10 +1,46 @@
-import React from 'react'
+import React, { useEffect } from 'react'
+import { useRouter } from 'next/router'
 import Link from 'next/link'
+import { useFirebaseAuth } from '@/hooks/useAuth'
 import { TrendingUp, Shield, BarChart3, Users } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/Card'
 
 export default function HomePage() {
+  const router = useRouter()
+  const { user, loading } = useFirebaseAuth()
+
+  useEffect(() => {
+    // 只有在不是載入中且用戶已登入時才重定向
+    if (!loading && user) {
+      router.push('/dashboard')
+    }
+  }, [user, loading, router])
+
+  // 顯示載入畫面
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">載入中...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // 如果用戶已登入，顯示重定向訊息
+  if (user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
+        <div className="text-center">
+          <TrendingUp className="h-16 w-16 text-blue-600 mx-auto mb-4" />
+          <p className="text-gray-600">正在重定向到儀表板...</p>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
       {/* 導航欄 */}
