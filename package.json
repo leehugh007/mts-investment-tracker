@@ -12,10 +12,6 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "clean": "rm -rf .next out dist",
-    "db:generate": "echo 'Using Firebase - no database generation needed'",
-    "db:push": "echo 'Using Firebase - no database push needed'",
-    "db:migrate": "echo 'Using Firebase - no database migration needed'",
-    "db:seed": "tsx scripts/seed-firestore.ts",
     "test": "echo 'No tests specified' && exit 0"
   },
   "dependencies": {
