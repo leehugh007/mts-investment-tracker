@@ -33,13 +33,15 @@ export const analytics = typeof window !== 'undefined' && process.env.NODE_ENV =
 // Connect to emulators in development only
 if (process.env.NODE_ENV === 'development' && typeof window !== 'undefined') {
   try {
-    // Auth emulator
-    if (!auth.config.emulator) {
+    // Auth emulator - check if already connected
+    const authConfig = (auth as any).config
+    if (!authConfig?.emulator) {
       connectAuthEmulator(auth, 'http://localhost:9099', { disableWarnings: true })
     }
     
-    // Firestore emulator
-    if (!(db as any)._delegate._databaseId.projectId.includes('localhost')) {
+    // Firestore emulator - check if already connected  
+    const dbConfig = (db as any)._delegate?._databaseId
+    if (!dbConfig?.projectId?.includes('localhost')) {
       connectFirestoreEmulator(db, 'localhost', 8080)
     }
   } catch (error) {
