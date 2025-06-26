@@ -13,38 +13,13 @@ import {
 } from 'firebase/auth'
 import { doc, setDoc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore'
 import { auth, db } from '@/lib/firebase/config'
+import { UserProfile } from '@/types'
 
 // Google Auth Provider
 const googleProvider = new GoogleAuthProvider()
 googleProvider.setCustomParameters({
   prompt: 'select_account'
 })
-
-export interface UserProfile {
-  uid: string
-  email: string
-  displayName: string
-  photoURL?: string
-  timezone: string
-  preferredCurrency: string
-  emailVerified: boolean
-  createdAt: any
-  lastLoginAt: any
-  preferences: {
-    dashboardLayout: {
-      layout: 'grid' | 'list'
-      columns: number
-    }
-    defaultMarket: {
-      market: string
-    }
-    notificationSettings: {
-      email: boolean
-      push: boolean
-      riskAlerts: boolean
-    }
-  }
-}
 
 /**
  * 註冊新用戶（郵件密碼）
@@ -69,32 +44,21 @@ export async function registerWithEmail(
 
     // 創建用戶資料文檔
     const userProfile: UserProfile = {
-      uid: user.uid,
+      id: user.uid,
       email: user.email!,
       displayName,
       photoURL: user.photoURL || undefined,
       timezone,
       preferredCurrency,
-      emailVerified: user.emailVerified,
-      createdAt: serverTimestamp(),
-      lastLoginAt: serverTimestamp(),
-      preferences: {
-        dashboardLayout: {
-          layout: 'grid',
-          columns: 2
-        },
-        defaultMarket: {
-          market: 'tw'
-        },
-        notificationSettings: {
-          email: true,
-          push: false,
-          riskAlerts: true
-        }
-      }
+      createdAt: new Date(),
+      updatedAt: new Date()
     }
 
-    await setDoc(doc(db, 'users', user.uid), userProfile)
+    await setDoc(doc(db, 'users', user.uid), {
+      ...userProfile,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp()
+    })
 
     // 創建默認資本配置
     await createDefaultAllocation(user.uid, preferredCurrency)
@@ -119,7 +83,7 @@ export async function signInWithEmail(
 
     // 更新最後登入時間
     await updateDoc(doc(db, 'users', user.uid), {
-      lastLoginAt: serverTimestamp()
+      updatedAt: serverTimestamp()
     })
 
     // 獲取用戶資料
@@ -149,39 +113,39 @@ export async function signInWithGoogle(): Promise<{ user: User; profile: UserPro
     if (isNewUser) {
       // 創建新用戶資料
       profile = {
-        uid: user.uid,
+        id: user.uid,
         email: user.email!,
         displayName: user.displayName || user.email!.split('@')[0],
         photoURL: user.photoURL || undefined,
         timezone: 'Asia/Taipei',
         preferredCurrency: 'TWD',
-        emailVerified: user.emailVerified,
-        createdAt: serverTimestamp(),
-        lastLoginAt: serverTimestamp(),
-        preferences: {
-          dashboardLayout: {
-            layout: 'grid',
-            columns: 2
-          },
-          defaultMarket: {
-            market: 'tw'
-          },
-          notificationSettings: {
-            email: true,
-            push: false,
-            riskAlerts: true
-          }
-        }
+        createdAt: new Date(),
+        updatedAt: new Date()
       }
 
-      await setDoc(doc(db, 'users', user.uid), profile)
+      await setDoc(doc(db, 'users', user.uid), {
+        ...profile,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp()
+      })
       await createDefaultAllocation(user.uid, 'TWD')
     } else {
       // 更新最後登入時間
       await updateDoc(doc(db, 'users', user.uid), {
-        lastLoginAt: serverTimestamp()
+        updatedAt: serverTimestamp()
       })
-      profile = userDoc.data() as UserProfile
+      
+      const userData = userDoc.data()
+      profile = {
+        id: userData.id || user.uid,
+        email: userData.email,
+        displayName: userData.displayName,
+        photoURL: userData.photoURL,
+        timezone: userData.timezone,
+        preferredCurrency: userData.preferredCurrency,
+        createdAt: userData.createdAt?.toDate() || new Date(),
+        updatedAt: new Date()
+      }
     }
 
     return { user, profile, isNewUser }
@@ -212,7 +176,18 @@ export async function getUserProfile(uid: string): Promise<UserProfile> {
     if (!userDoc.exists()) {
       throw new Error('用戶資料不存在')
     }
-    return userDoc.data() as UserProfile
+    
+    const userData = userDoc.data()
+    return {
+      id: userData.id || uid,
+      email: userData.email,
+      displayName: userData.displayName,
+      photoURL: userData.photoURL,
+      timezone: userData.timezone,
+      preferredCurrency: userData.preferredCurrency,
+      createdAt: userData.createdAt?.toDate() || new Date(),
+      updatedAt: userData.updatedAt?.toDate() || new Date()
+    }
   } catch (error) {
     console.error('Get user profile error:', error)
     throw new Error('獲取用戶資料失敗')
@@ -224,10 +199,13 @@ export async function getUserProfile(uid: string): Promise<UserProfile> {
  */
 export async function updateUserProfile(
   uid: string,
-  updates: Partial<Omit<UserProfile, 'uid' | 'email' | 'createdAt'>>
+  updates: Partial<Omit<UserProfile, 'id' | 'email' | 'createdAt'>>
 ): Promise<void> {
   try {
-    await updateDoc(doc(db, 'users', uid), updates)
+    await updateDoc(doc(db, 'users', uid), {
+      ...updates,
+      updatedAt: serverTimestamp()
+    })
   } catch (error) {
     console.error('Update user profile error:', error)
     throw new Error('更新用戶資料失敗')
@@ -284,13 +262,13 @@ export async function resendVerificationEmail(): Promise<void> {
 async function createDefaultAllocation(uid: string, currency: string): Promise<void> {
   try {
     const allocationData = {
+      id: `${uid}_default`,
       userId: uid,
       name: '主要投資組合',
       description: '默認的投資資金配置',
-      totalAmount: 0,
-      availableAmount: 0,
+      targetAmount: 0,
+      currentAmount: 0,
       currency,
-      riskLevel: 'moderate',
       isActive: true,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp()

@@ -13,107 +13,18 @@ import {
   limit,
   startAfter,
   serverTimestamp,
-  Timestamp,
   DocumentSnapshot,
   QueryConstraint,
 } from 'firebase/firestore'
 import { db } from '@/lib/firebase/config'
-
-// 數據模型類型
-export interface CapitalAllocation {
-  id: string
-  userId: string
-  name: string
-  description?: string
-  totalAmount: number
-  availableAmount: number
-  currency: string
-  riskLevel: 'conservative' | 'moderate' | 'aggressive'
-  isActive: boolean
-  createdAt: Timestamp
-  updatedAt: Timestamp
-}
-
-export interface Transaction {
-  id: string
-  userId: string
-  allocationId: string
-  market: string
-  symbol: string
-  stockName?: string
-  transactionType: 'buy' | 'sell'
-  shares: number
-  price: number
-  totalAmount: number
-  fee: number
-  currency: string
-  exchangeRate: number
-  baseCurrencyAmount?: number
-  transactionDate: Timestamp
-  settlementDate?: Timestamp
-  notes?: string
-  externalTransactionId?: string
-  createdAt: Timestamp
-  updatedAt: Timestamp
-}
-
-export interface Holding {
-  id: string
-  userId: string
-  allocationId: string
-  market: string
-  symbol: string
-  stockName?: string
-  totalShares: number
-  averageCost: number
-  totalCost: number
-  currency: string
-  firstPurchaseDate: Timestamp
-  lastTransactionDate: Timestamp
-  updatedAt: Timestamp
-}
-
-export interface RiskSetting {
-  id: string
-  userId: string
-  allocationId?: string
-  settingType: 'position_limit' | 'stop_loss' | 'daily_loss'
-  settingScope: 'allocation' | 'position' | 'global'
-  targetSymbol?: string
-  targetMarket?: string
-  maxLossPercentage?: number
-  stopLossPercentage?: number
-  positionSizeLimit?: number
-  maxPositionValue?: number
-  dailyLossLimit?: number
-  isActive: boolean
-  createdAt: Timestamp
-  updatedAt: Timestamp
-}
-
-export interface RiskEvent {
-  id: string
-  userId: string
-  allocationId?: string
-  eventType: string
-  severity: 'low' | 'medium' | 'high' | 'critical'
-  symbol?: string
-  market?: string
-  triggerValue?: number
-  thresholdValue?: number
-  message: string
-  isResolved: boolean
-  resolvedAt?: Timestamp
-  createdAt: Timestamp
-}
-
-// 分頁參數
-export interface PaginationParams {
-  limit: number
-  lastDoc?: DocumentSnapshot
-  orderByField?: string
-  orderDirection?: 'asc' | 'desc'
-}
+import { 
+  CapitalAllocation, 
+  Transaction, 
+  Holding, 
+  RiskSetting, 
+  RiskEvent,
+  PaginationParams 
+} from '@/types'
 
 // 分頁結果
 export interface PaginatedResult<T> {
@@ -147,7 +58,13 @@ export class CapitalAllocationService {
     try {
       const docSnap = await getDoc(doc(db, this.collection, id))
       if (docSnap.exists()) {
-        return { id: docSnap.id, ...docSnap.data() } as CapitalAllocation
+        const data = docSnap.data()
+        return { 
+          id: docSnap.id, 
+          ...data,
+          createdAt: data.createdAt?.toDate() || new Date(),
+          updatedAt: data.updatedAt?.toDate() || new Date()
+        } as CapitalAllocation
       }
       return null
     } catch (error) {
@@ -165,10 +82,15 @@ export class CapitalAllocationService {
         orderBy('createdAt', 'desc')
       )
       const querySnapshot = await getDocs(q)
-      return querySnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      })) as CapitalAllocation[]
+      return querySnapshot.docs.map(doc => {
+        const data = doc.data()
+        return {
+          id: doc.id,
+          ...data,
+          createdAt: data.createdAt?.toDate() || new Date(),
+          updatedAt: data.updatedAt?.toDate() || new Date()
+        }
+      }) as CapitalAllocation[]
     } catch (error) {
       console.error('Get user allocations error:', error)
       throw new Error('獲取用戶資本配置失敗')
@@ -224,7 +146,14 @@ export class TransactionService {
     try {
       const docSnap = await getDoc(doc(db, this.collection, id))
       if (docSnap.exists()) {
-        return { id: docSnap.id, ...docSnap.data() } as Transaction
+        const data = docSnap.data()
+        return { 
+          id: docSnap.id, 
+          ...data,
+          executedAt: data.executedAt?.toDate() || new Date(),
+          createdAt: data.createdAt?.toDate() || new Date(),
+          updatedAt: data.updatedAt?.toDate() || new Date()
+        } as Transaction
       }
       return null
     } catch (error) {
@@ -240,24 +169,26 @@ export class TransactionService {
     try {
       const constraints: QueryConstraint[] = [
         where('userId', '==', userId),
-        orderBy(pagination?.orderByField || 'transactionDate', pagination?.orderDirection || 'desc')
+        orderBy(pagination?.sortBy || 'executedAt', pagination?.sortOrder || 'desc')
       ]
 
       if (pagination?.limit) {
         constraints.push(limit(pagination.limit))
       }
 
-      if (pagination?.lastDoc) {
-        constraints.push(startAfter(pagination.lastDoc))
-      }
-
       const q = query(collection(db, this.collection), ...constraints)
       const querySnapshot = await getDocs(q)
       
-      const data = querySnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      })) as Transaction[]
+      const data = querySnapshot.docs.map(doc => {
+        const docData = doc.data()
+        return {
+          id: doc.id,
+          ...docData,
+          executedAt: docData.executedAt?.toDate() || new Date(),
+          createdAt: docData.createdAt?.toDate() || new Date(),
+          updatedAt: docData.updatedAt?.toDate() || new Date()
+        }
+      }) as Transaction[]
 
       return {
         data,
@@ -275,13 +206,19 @@ export class TransactionService {
       const q = query(
         collection(db, this.collection),
         where('allocationId', '==', allocationId),
-        orderBy('transactionDate', 'desc')
+        orderBy('executedAt', 'desc')
       )
       const querySnapshot = await getDocs(q)
-      return querySnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      })) as Transaction[]
+      return querySnapshot.docs.map(doc => {
+        const data = doc.data()
+        return {
+          id: doc.id,
+          ...data,
+          executedAt: data.executedAt?.toDate() || new Date(),
+          createdAt: data.createdAt?.toDate() || new Date(),
+          updatedAt: data.updatedAt?.toDate() || new Date()
+        }
+      }) as Transaction[]
     } catch (error) {
       console.error('Get allocation transactions error:', error)
       throw new Error('獲取配置交易記錄失敗')
@@ -338,10 +275,15 @@ export class HoldingService {
         orderBy('updatedAt', 'desc')
       )
       const querySnapshot = await getDocs(q)
-      return querySnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      })) as Holding[]
+      return querySnapshot.docs.map(doc => {
+        const data = doc.data()
+        return {
+          id: doc.id,
+          ...data,
+          createdAt: data.createdAt?.toDate() || new Date(),
+          updatedAt: data.updatedAt?.toDate() || new Date()
+        }
+      }) as Holding[]
     } catch (error) {
       console.error('Get user holdings error:', error)
       throw new Error('獲取用戶持股記錄失敗')
@@ -356,10 +298,15 @@ export class HoldingService {
         orderBy('updatedAt', 'desc')
       )
       const querySnapshot = await getDocs(q)
-      return querySnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      })) as Holding[]
+      return querySnapshot.docs.map(doc => {
+        const data = doc.data()
+        return {
+          id: doc.id,
+          ...data,
+          createdAt: data.createdAt?.toDate() || new Date(),
+          updatedAt: data.updatedAt?.toDate() || new Date()
+        }
+      }) as Holding[]
     } catch (error) {
       console.error('Get allocation holdings error:', error)
       throw new Error('獲取配置持股記錄失敗')
@@ -405,10 +352,15 @@ export class RiskSettingService {
         orderBy('createdAt', 'desc')
       )
       const querySnapshot = await getDocs(q)
-      return querySnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      })) as RiskSetting[]
+      return querySnapshot.docs.map(doc => {
+        const data = doc.data()
+        return {
+          id: doc.id,
+          ...data,
+          createdAt: data.createdAt?.toDate() || new Date(),
+          updatedAt: data.updatedAt?.toDate() || new Date()
+        }
+      }) as RiskSetting[]
     } catch (error) {
       console.error('Get user risk settings error:', error)
       throw new Error('獲取用戶風險設定失敗')
@@ -472,10 +424,15 @@ export class RiskEventService {
 
       const q = query(collection(db, this.collection), ...constraints)
       const querySnapshot = await getDocs(q)
-      return querySnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      })) as RiskEvent[]
+      return querySnapshot.docs.map(doc => {
+        const data = doc.data()
+        return {
+          id: doc.id,
+          ...data,
+          createdAt: data.createdAt?.toDate() || new Date(),
+          resolvedAt: data.resolvedAt?.toDate()
+        }
+      }) as RiskEvent[]
     } catch (error) {
       console.error('Get user risk events error:', error)
       throw new Error('獲取用戶風險事件失敗')
