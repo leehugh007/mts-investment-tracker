@@ -185,20 +185,13 @@ export default function DashboardPage() {
                         </p>
                         <div className="mt-2 flex items-center space-x-4 text-xs text-gray-500">
                           <span>
-                            總額: {formatCurrency(allocation.totalAmount, allocation.currency)}
+                            總額: {formatCurrency(allocation.targetAmount, allocation.currency)}
                           </span>
                           <span>
-                            可用: {formatCurrency(allocation.availableAmount, allocation.currency)}
+                            可用: {formatCurrency(allocation.currentAmount, allocation.currency)}
                           </span>
-                          <span className={`px-2 py-1 rounded-full text-xs ${
-                            allocation.riskLevel === 'conservative' 
-                              ? 'bg-green-100 text-green-800'
-                              : allocation.riskLevel === 'moderate'
-                              ? 'bg-yellow-100 text-yellow-800'
-                              : 'bg-red-100 text-red-800'
-                          }`}>
-                            {allocation.riskLevel === 'conservative' ? '保守' :
-                             allocation.riskLevel === 'moderate' ? '穩健' : '積極'}
+                          <span className="px-2 py-1 rounded-full text-xs bg-blue-100 text-blue-800">
+                            {allocation.isActive ? '啟用' : '停用'}
                           </span>
                         </div>
                       </div>
