@@ -1,5 +1,6 @@
 import React from 'react'
 import type { AppProps } from 'next/app'
+import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { useFirebaseAuth } from '@/hooks/useAuth'
 import { useUIStore } from '@/stores/uiStore'
 import '@/styles/globals.css'
@@ -73,8 +74,15 @@ function NotificationContainer() {
 
 // 應用程式初始化組件
 function AppInitializer({ children }: { children: React.ReactNode }) {
-  // 初始化Firebase認證狀態
-  useFirebaseAuth()
+  // 初始化Firebase認證狀態（但不阻塞渲染）
+  const authState = useFirebaseAuth()
+
+  // 如果Firebase不可用，顯示警告但不阻塞應用
+  React.useEffect(() => {
+    if (authState.error && authState.error.includes('Firebase服務不可用')) {
+      console.warn('Firebase服務不可用，應用將以離線模式運行')
+    }
+  }, [authState.error])
 
   return (
     <>
@@ -86,9 +94,11 @@ function AppInitializer({ children }: { children: React.ReactNode }) {
 
 export default function App({ Component, pageProps }: AppProps) {
   return (
-    <AppInitializer>
-      <Component {...pageProps} />
-    </AppInitializer>
+    <ErrorBoundary>
+      <AppInitializer>
+        <Component {...pageProps} />
+      </AppInitializer>
+    </ErrorBoundary>
   )
 }
 
