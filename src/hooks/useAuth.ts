@@ -33,9 +33,9 @@ export function useFirebaseAuth(): AuthState {
     isInitialized: false
   })
 
-  // Firebase認證狀態
+  // Firebase認證狀態（只有在Firebase可用時才使用）
   const [firebaseUser, firebaseLoading, firebaseError] = useAuthState(
-    isFirebaseAvailable() ? auth! : null
+    isFirebaseAvailable() ? auth! : undefined
   )
 
   // Store引用（穩定引用）
