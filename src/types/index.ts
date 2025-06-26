@@ -1,5 +1,3 @@
-import { User, CapitalAllocation, Transaction, Holding, RiskSetting, RiskEvent } from '@prisma/client'
-
 // 基礎API響應類型
 export interface ApiResponse<T = any> {
   success: boolean
@@ -18,8 +16,19 @@ export interface ApiResponse<T = any> {
 }
 
 // 用戶相關類型
-export interface UserProfile extends Omit<User, 'passwordHash'> {
-  // 排除敏感信息的用戶資料
+export interface User {
+  id: string
+  email: string
+  displayName: string
+  photoURL?: string
+  timezone: string
+  preferredCurrency: string
+  createdAt: Date
+  updatedAt: Date
+}
+
+export interface UserProfile extends User {
+  // 用戶完整資料
 }
 
 export interface UserPreferences {
@@ -62,6 +71,78 @@ export interface AuthSession {
 }
 
 // 投資組合相關類型
+export interface CapitalAllocation {
+  id: string
+  userId: string
+  name: string
+  description?: string
+  targetAmount: number
+  currentAmount: number
+  currency: string
+  isActive: boolean
+  createdAt: Date
+  updatedAt: Date
+}
+
+export interface Transaction {
+  id: string
+  userId: string
+  allocationId: string
+  type: 'buy' | 'sell'
+  symbol: string
+  market: string
+  quantity: number
+  price: number
+  totalAmount: number
+  fees: number
+  currency: string
+  executedAt: Date
+  notes?: string
+  createdAt: Date
+  updatedAt: Date
+}
+
+export interface Holding {
+  id: string
+  userId: string
+  allocationId: string
+  symbol: string
+  market: string
+  quantity: number
+  averagePrice: number
+  totalCost: number
+  currency: string
+  createdAt: Date
+  updatedAt: Date
+}
+
+export interface RiskSetting {
+  id: string
+  userId: string
+  allocationId?: string
+  type: 'position_limit' | 'stop_loss' | 'daily_loss' | 'portfolio_risk'
+  threshold: number
+  isActive: boolean
+  createdAt: Date
+  updatedAt: Date
+}
+
+export interface RiskEvent {
+  id: string
+  userId: string
+  allocationId?: string
+  type: 'position_limit' | 'stop_loss' | 'daily_loss' | 'portfolio_risk'
+  severity: 'low' | 'medium' | 'high' | 'critical'
+  message: string
+  symbol?: string
+  market?: string
+  triggerValue?: number
+  thresholdValue?: number
+  isResolved: boolean
+  createdAt: Date
+  resolvedAt?: Date
+}
+
 export interface PortfolioSummary {
   totalValue: number
   totalCost: number
@@ -251,14 +332,4 @@ export interface ExchangeRate {
   rate: number
   lastUpdated: Date
 }
-
-// 導出所有Prisma模型類型
-export type {
-  User,
-  CapitalAllocation,
-  Transaction,
-  Holding,
-  RiskSetting,
-  RiskEvent,
-} from '@prisma/client'
 
