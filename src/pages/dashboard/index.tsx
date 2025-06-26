@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { useRequireAuth } from '@/hooks/useAuth'
 import { useUserStore } from '@/stores/userStore'
 import { CapitalAllocationService } from '@/lib/firebase/firestore'
@@ -20,23 +20,25 @@ export default function DashboardPage() {
   const { allocations, setAllocations, userProfile } = useUserStore()
   const [isLoadingAllocations, setIsLoadingAllocations] = useState(true)
 
-  useEffect(() => {
-    if (user && !loading) {
-      loadAllocations()
-    }
-  }, [user, loading])
-
-  const loadAllocations = async () => {
+  const loadAllocations = useCallback(async () => {
+    if (!user) return
+    
     try {
       setIsLoadingAllocations(true)
-      const userAllocations = await CapitalAllocationService.getByUserId(user!.uid)
+      const userAllocations = await CapitalAllocationService.getByUserId(user.uid)
       setAllocations(userAllocations)
     } catch (error) {
       console.error('Failed to load allocations:', error)
     } finally {
       setIsLoadingAllocations(false)
     }
-  }
+  }, [user, setAllocations])
+
+  useEffect(() => {
+    if (user && !loading) {
+      loadAllocations()
+    }
+  }, [user, loading, loadAllocations])
 
   // 計算總覽統計
   const totalAmount = allocations.reduce((sum, allocation) => sum + allocation.targetAmount, 0)
