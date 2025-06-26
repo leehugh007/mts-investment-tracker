@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import { devtools } from 'zustand/middleware'
 import { User } from 'firebase/auth'
-import { UserProfile, CapitalAllocation } from '@/lib/firebase/firestore'
+import { UserProfile, CapitalAllocation } from '@/types'
 
 interface UserState {
   // Firebase用戶
