@@ -1,10 +1,52 @@
-import React from 'react'
+import React, { useEffect } from 'react'
+import { useRouter } from 'next/router'
 import Link from 'next/link'
+import { useFirebaseAuth } from '@/hooks/useAuth'
 import { TrendingUp, Shield, BarChart3, Users } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/Card'
 
 export default function HomePage() {
+  const router = useRouter()
+  const { user, loading, isInitialized } = useFirebaseAuth()
+
+  // 安全的重定向邏輯
+  useEffect(() => {
+    // 只有在完全初始化且用戶已登入時才重定向
+    if (isInitialized && !loading && user) {
+      const timer = setTimeout(() => {
+        router.push('/dashboard')
+      }, 100) // 小延遲確保狀態穩定
+      
+      return () => clearTimeout(timer)
+    }
+  }, [user, loading, isInitialized, router])
+
+  // 如果還在初始化或載入中，顯示載入畫面
+  if (!isInitialized || loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">初始化中...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // 如果用戶已登入，顯示重定向訊息
+  if (user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
+        <div className="text-center">
+          <TrendingUp className="h-16 w-16 text-blue-600 mx-auto mb-4" />
+          <p className="text-gray-600">歡迎回來！正在重定向到儀表板...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // 用戶未登入，顯示首頁
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
       {/* 導航欄 */}
