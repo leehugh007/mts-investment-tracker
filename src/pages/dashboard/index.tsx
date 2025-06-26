@@ -39,8 +39,8 @@ export default function DashboardPage() {
   }
 
   // 計算總覽統計
-  const totalAmount = allocations.reduce((sum, allocation) => sum + allocation.totalAmount, 0)
-  const totalAvailable = allocations.reduce((sum, allocation) => sum + allocation.availableAmount, 0)
+  const totalAmount = allocations.reduce((sum, allocation) => sum + allocation.targetAmount, 0)
+  const totalAvailable = allocations.reduce((sum, allocation) => sum + allocation.currentAmount, 0)
   const totalInvested = totalAmount - totalAvailable
   const utilizationRate = totalAmount > 0 ? (totalInvested / totalAmount) * 100 : 0
 
