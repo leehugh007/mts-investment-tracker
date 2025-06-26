@@ -27,13 +27,15 @@ export const analytics = typeof window !== 'undefined' ? getAnalytics(app) : nul
 if (process.env.NODE_ENV === 'development' && typeof window !== 'undefined') {
   // Only connect to emulators if not already connected
   try {
-    // Auth emulator
-    if (!auth.config.emulator) {
+    // Auth emulator - check if already connected
+    const authConfig = auth.config as any
+    if (!authConfig.emulator) {
       connectAuthEmulator(auth, 'http://localhost:9099', { disableWarnings: true })
     }
     
-    // Firestore emulator
-    if (!db._delegate._databaseId.projectId.includes('localhost')) {
+    // Firestore emulator - check if already connected
+    const dbConfig = (db as any)._delegate._databaseId
+    if (!dbConfig.projectId.includes('localhost')) {
       connectFirestoreEmulator(db, 'localhost', 8080)
     }
   } catch (error) {
