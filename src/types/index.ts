@@ -1,298 +1,48 @@
-// 基礎API響應類型
-export interface ApiResponse<T = any> {
-  success: boolean
-  data?: T
-  error?: {
-    code: string
-    message: string
-    details?: any
-  }
-  meta?: {
-    page?: number
-    limit?: number
-    total?: number
-    totalPages?: number
-  }
-}
-
-// 用戶相關類型
-export interface User {
+// 投資項目類型
+export interface Investment {
   id: string
-  email: string
-  displayName: string
-  photoURL?: string
-  timezone: string
-  preferredCurrency: string
-  createdAt: Date
-  updatedAt: Date
-}
-
-export interface UserProfile extends User {
-  // 用戶完整資料
-}
-
-export interface UserPreferences {
-  dashboardLayout: {
-    layout: 'grid' | 'list'
-    columns: number
-  }
-  defaultMarket: {
-    market: string
-  }
-  notificationSettings: {
-    email: boolean
-    push: boolean
-    riskAlerts: boolean
-  }
-}
-
-// 認證相關類型
-export interface LoginCredentials {
-  email: string
-  password: string
-}
-
-export interface RegisterData {
-  email: string
-  password: string
   name: string
-  timezone?: string
-  preferredCurrency?: string
+  type: 'stock' | 'etf' | 'fund' | 'bond' | 'crypto' | 'other'
+  amount: number
+  currentValue: number
+  purchaseDate: string
+  notes?: string
+  symbol?: string
+  quantity?: number
+  pricePerUnit?: number
 }
 
-export interface AuthSession {
-  user: {
-    id: string
-    email: string
-    name: string
-    image?: string
-  }
-  expires: string
-}
-
-// 投資組合相關類型
-export interface CapitalAllocation {
+// 投資組合類型
+export interface Portfolio {
   id: string
-  userId: string
   name: string
   description?: string
-  targetAmount: number
-  currentAmount: number
-  currency: string
-  isActive: boolean
-  createdAt: Date
-  updatedAt: Date
+  investments: Investment[]
+  createdAt: string
+  updatedAt: string
 }
 
-export interface Transaction {
-  id: string
-  userId: string
-  allocationId: string
-  type: 'buy' | 'sell'
-  symbol: string
-  market: string
-  quantity: number
-  price: number
-  totalAmount: number
-  fees: number
-  currency: string
-  executedAt: Date
-  notes?: string
-  createdAt: Date
-  updatedAt: Date
-}
-
-export interface Holding {
-  id: string
-  userId: string
-  allocationId: string
-  symbol: string
-  market: string
-  quantity: number
-  averagePrice: number
-  totalCost: number
-  currency: string
-  createdAt: Date
-  updatedAt: Date
-}
-
-export interface RiskSetting {
-  id: string
-  userId: string
-  allocationId?: string
-  type: 'position_limit' | 'stop_loss' | 'daily_loss' | 'portfolio_risk'
-  threshold: number
-  isActive: boolean
-  createdAt: Date
-  updatedAt: Date
-}
-
-export interface RiskEvent {
-  id: string
-  userId: string
-  allocationId?: string
-  type: 'position_limit' | 'stop_loss' | 'daily_loss' | 'portfolio_risk'
-  severity: 'low' | 'medium' | 'high' | 'critical'
-  message: string
-  symbol?: string
-  market?: string
-  triggerValue?: number
-  thresholdValue?: number
-  isResolved: boolean
-  createdAt: Date
-  resolvedAt?: Date
-}
-
-export interface PortfolioSummary {
-  totalValue: number
-  totalCost: number
-  totalGainLoss: number
-  totalGainLossPercentage: number
-  availableCash: number
-  allocatedCash: number
-  currency: string
-}
-
-export interface HoldingWithCurrentPrice extends Holding {
-  currentPrice?: number
-  currentValue?: number
-  gainLoss?: number
-  gainLossPercentage?: number
-  lastUpdated?: Date
-}
-
-export interface TransactionWithDetails extends Transaction {
-  allocation: CapitalAllocation
-}
-
-// 股票數據相關類型
-export interface StockQuote {
-  symbol: string
-  market: string
-  name: string
-  price: number
-  change: number
-  changePercent: number
-  volume: number
-  marketCap?: number
-  pe?: number
-  dividend?: number
-  currency: string
-  lastUpdated: Date
-}
-
-export interface StockHistoricalData {
-  symbol: string
-  market: string
-  date: Date
-  open: number
-  high: number
-  low: number
-  close: number
-  volume: number
-  adjustedClose?: number
-}
-
-export interface MarketData {
-  quotes: StockQuote[]
-  lastUpdated: Date
-}
-
-// 風險管理相關類型
-export interface RiskAlert {
-  id: string
-  type: 'position_limit' | 'stop_loss' | 'daily_loss' | 'portfolio_risk'
-  severity: 'low' | 'medium' | 'high' | 'critical'
-  message: string
-  symbol?: string
-  market?: string
-  triggerValue?: number
-  thresholdValue?: number
-  createdAt: Date
-  isResolved: boolean
-}
-
-export interface RiskMetrics {
-  portfolioRisk: number
-  maxDrawdown: number
-  sharpeRatio: number
-  volatility: number
-  beta: number
-  var: number // Value at Risk
-}
-
-// 報表相關類型
-export interface PerformanceReport {
-  period: 'daily' | 'weekly' | 'monthly' | 'quarterly' | 'yearly'
-  startDate: Date
-  endDate: Date
-  totalReturn: number
-  totalReturnPercentage: number
-  annualizedReturn: number
-  volatility: number
-  sharpeRatio: number
-  maxDrawdown: number
-  winRate: number
-  profitFactor: number
-}
-
-export interface AllocationReport {
-  allocationId: string
-  name: string
-  totalValue: number
-  totalCost: number
-  gainLoss: number
-  gainLossPercentage: number
-  holdings: HoldingWithCurrentPrice[]
-  riskMetrics: RiskMetrics
-}
-
-// 圖表數據類型
-export interface ChartDataPoint {
+// 投資績效類型
+export interface PerformanceData {
   date: string
   value: number
-  label?: string
+  gainLoss: number
+  gainLossPercentage: number
 }
 
-export interface PortfolioChartData {
-  performance: ChartDataPoint[]
-  allocation: {
-    symbol: string
-    name: string
+// 投資分析類型
+export interface AnalysisData {
+  totalInvestment: number
+  totalCurrentValue: number
+  totalGainLoss: number
+  totalGainLossPercentage: number
+  bestPerformer: Investment | null
+  worstPerformer: Investment | null
+  assetAllocation: {
+    type: string
     value: number
     percentage: number
-    color: string
   }[]
-}
-
-// 搜索和篩選類型
-export interface SearchFilters {
-  market?: string
-  symbol?: string
-  dateFrom?: Date
-  dateTo?: Date
-  transactionType?: 'buy' | 'sell'
-  allocationId?: string
-}
-
-export interface PaginationParams {
-  page: number
-  limit: number
-  sortBy?: string
-  sortOrder?: 'asc' | 'desc'
-}
-
-// 表單驗證類型
-export interface ValidationError {
-  field: string
-  message: string
-}
-
-export interface FormState<T> {
-  data: T
-  errors: ValidationError[]
-  isSubmitting: boolean
-  isValid: boolean
 }
 
 // 通知類型
@@ -301,35 +51,50 @@ export interface Notification {
   type: 'success' | 'error' | 'warning' | 'info'
   title: string
   message: string
-  duration?: number
-  actions?: {
-    label: string
-    action: () => void
-  }[]
+  timestamp: string
+  read: boolean
 }
 
-// 市場類型
-export type MarketType = 'tw' | 'us' | 'hk' | 'jp' | 'kr'
+// API 響應類型
+export interface ApiResponse<T = any> {
+  success: boolean
+  data?: T
+  error?: string
+  message?: string
+}
 
-export interface Market {
-  code: MarketType
+// 表單類型
+export interface InvestmentFormData {
   name: string
-  currency: string
-  timezone: string
-  tradingHours: {
-    open: string
-    close: string
-  }
-  isOpen: boolean
+  type: Investment['type']
+  amount: number
+  purchaseDate: string
+  notes?: string
+  symbol?: string
+  quantity?: number
+  pricePerUnit?: number
 }
 
-// 貨幣類型
-export type CurrencyType = 'TWD' | 'USD' | 'HKD' | 'JPY' | 'KRW'
+// 搜索和篩選類型
+export interface SearchFilters {
+  query?: string
+  type?: Investment['type']
+  dateFrom?: string
+  dateTo?: string
+  minAmount?: number
+  maxAmount?: number
+}
 
-export interface ExchangeRate {
-  from: CurrencyType
-  to: CurrencyType
-  rate: number
-  lastUpdated: Date
+// 排序類型
+export interface SortOptions {
+  field: keyof Investment
+  direction: 'asc' | 'desc'
+}
+
+// 分頁類型
+export interface PaginationOptions {
+  page: number
+  limit: number
+  total: number
 }
 
